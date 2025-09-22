@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  password  String
+  phone     String?   @db.VarChar(20)
+  role      UserRole  @default(USER)
+  bookings  Booking[]
+  seatHolds SeatHold[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model Cinema {
+  id        Int      @id @default(autoincrement())
+  name      String
+  city      String?
+  screens   Screen[]
+  createdAt DateTime @default(now())
+}
+
+model Screen {
+  id       Int     @id @default(autoincrement())
+  name     String
+  cinema   Cinema  @relation(fields: [cinemaId], references: [id])
+  cinemaId Int
+  shows    Show[]
+}
+
+model Movie {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  durationMin Int?
+  posterUrl   String?
+  shows       Show[]
+  createdAt   DateTime @default(now())
+}
+
+model Show {
+  id        Int       @id @default(autoincrement())
+  movie     Movie     @relation(fields: [movieId], references: [id])
+  movieId   Int
+  screen    Screen    @relation(fields: [screenId], references: [id])
+  screenId  Int
+  startTime DateTime
+  price     Float
+  bookings  Booking[]
+  seatHolds SeatHold[]
+}
+
+model Booking {
+  id         Int            @id @default(autoincrement())
+  user       User           @relation(fields: [userId], references: [id])
+  userId     Int
+  show       Show           @relation(fields: [showId], references: [id])
+  showId     Int
+  seats      Json
+  totalPrice Float
+  status     BookingStatus  @default(CONFIRMED)
+  createdAt  DateTime       @default(now())
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model SeatHold {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  show      Show     @relation(fields: [showId], references: [id])
+  showId    Int
+  seats     Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
