@@ -1,47 +1,63 @@
 const { validationResult } = require('express-validator');
 const prisma = require('../config/prismaClient');
+const { getPaginationParams, formatPaginationResponse } = require('../utils/paginationHelper');
 
 const getAllShows = async (req, res, next) => {
   try {
-    const shows = await prisma.show.findMany({
-      include: {
-        movie: {
-          select: {
-            id: true,
-            title: true,
-            durationMin: true
-          }
-        },
-        screen: {
-          select: {
-            id: true,
-            name: true,
-            cinema: {
-              select: {
-                id: true,
-                name: true,
-                city: true
+    const { page, limit, skip, take } = getPaginationParams(req.query);
+
+    const [shows, total] = await Promise.all([
+      prisma.show.findMany({
+        include: {
+          movie: {
+            select: {
+              id: true,
+              title: true,
+              durationMin: true
+            }
+          },
+          screen: {
+            select: {
+              id: true,
+              name: true,
+              cinema: {
+                select: {
+                  id: true,
+                  name: true,
+                  city: true
+                }
               }
+            }
+          },
+          _count: {
+            select: {
+              bookings: true
             }
           }
         },
-        _count: {
-          select: {
-            bookings: true
-          }
-        }
-      },
-      orderBy: {
-        startTime: 'asc'
-      }
-    });
+        orderBy: {
+          startTime: 'asc'
+        },
+        skip,
+        take
+      }),
+      prisma.show.count()
+    ]);
+
+    const response = formatPaginationResponse(shows, total, page, limit);
 
     res.json({
       success: true,
       message: 'Shows retrieved successfully',
-      data: shows
+      ...response
     });
   } catch (error) {
+    if (error.message.includes('Invalid pagination parameters')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
     next(error);
   }
 };

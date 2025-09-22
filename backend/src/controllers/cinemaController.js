@@ -1,33 +1,49 @@
 const { validationResult } = require('express-validator');
 const prisma = require('../config/prismaClient');
+const { getPaginationParams, formatPaginationResponse } = require('../utils/paginationHelper');
 
 const getAllCinemas = async (req, res, next) => {
   try {
-    const cinemas = await prisma.cinema.findMany({
-      include: {
-        screens: {
-          select: {
-            id: true,
-            name: true
+    const { page, limit, skip, take } = getPaginationParams(req.query);
+
+    const [cinemas, total] = await Promise.all([
+      prisma.cinema.findMany({
+        include: {
+          screens: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
+          _count: {
+            select: {
+              screens: true
+            }
           }
         },
-        _count: {
-          select: {
-            screens: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+        orderBy: {
+          createdAt: 'desc'
+        },
+        skip,
+        take
+      }),
+      prisma.cinema.count()
+    ]);
+
+    const response = formatPaginationResponse(cinemas, total, page, limit);
 
     res.json({
       success: true,
       message: 'Cinemas retrieved successfully',
-      data: cinemas
+      ...response
     });
   } catch (error) {
+    if (error.message.includes('Invalid pagination parameters')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
     next(error);
   }
 };
