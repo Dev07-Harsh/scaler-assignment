@@ -83,16 +83,16 @@ const Movies = () => {
                       alt={movie.title}
                       className="w-full h-full object-cover"
                       onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextElementSibling.style.display = 'flex';
+                        e.target.src = `https://via.placeholder.com/300x450/1f2937/ffffff?text=${encodeURIComponent(movie.title)}`;
                       }}
                     />
-                  ) : null}
-                  <div className="absolute inset-0 bg-slate-200 flex items-center justify-center">
-                    <div className="text-slate-400 text-4xl font-bold">
-                      {movie.title.charAt(0)}
+                  ) : (
+                    <div className="w-full h-full bg-slate-200 flex items-center justify-center">
+                      <div className="text-slate-400 text-2xl font-bold text-center p-4">
+                        {movie.title}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 
                 <div className="p-4">
