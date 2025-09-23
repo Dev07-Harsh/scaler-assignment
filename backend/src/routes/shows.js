@@ -7,6 +7,7 @@ const {
   updateShow,
   deleteShow
 } = require('../controllers/showController');
+const adminMiddleware = require('../middlewares/adminMiddleware');
 
 const router = express.Router();
 
@@ -79,8 +80,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   post:
- *     summary: Create a new show
- *     description: Schedule a new movie show (validates movie/screen existence and prevents time conflicts)
+ *     summary: Create a new show (Admin Only)
+ *     description: Schedule a new movie show. Requires admin privileges. Validates movie/screen existence and prevents time conflicts.
  *     tags: [Shows]
  *     security:
  *       - bearerAuth: []
@@ -170,8 +171,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   put:
- *     summary: Update show
- *     description: Update an existing show
+ *     summary: Update show (Admin Only)
+ *     description: Update an existing show. Requires admin privileges.
  *     tags: [Shows]
  *     security:
  *       - bearerAuth: []
@@ -223,8 +224,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   delete:
- *     summary: Delete show
- *     description: Delete a show (only if it has no bookings)
+ *     summary: Delete show (Admin Only)
+ *     description: Delete a show (only if it has no bookings). Requires admin privileges.
  *     tags: [Shows]
  *     security:
  *       - bearerAuth: []
@@ -301,10 +302,13 @@ const idValidation = [
     .withMessage('Valid show ID is required')
 ];
 
+// Public read access for authenticated users
 router.get('/', getAllShows);
 router.get('/:id', idValidation, getShowById);
-router.post('/', showValidation, createShow);
-router.put('/:id', [...idValidation, ...showValidation], updateShow);
-router.delete('/:id', idValidation, deleteShow);
+
+// Admin-only write access
+router.post('/', adminMiddleware, showValidation, createShow);
+router.put('/:id', adminMiddleware, [...idValidation, ...showValidation], updateShow);
+router.delete('/:id', adminMiddleware, idValidation, deleteShow);
 
 module.exports = router;

@@ -9,6 +9,7 @@ const screenRoutes = require('./routes/screens');
 const movieRoutes = require('./routes/movies');
 const showRoutes = require('./routes/shows');
 const bookingRoutes = require('./routes/bookings');
+const adminRoutes = require('./routes/adminRoutes');
 const authMiddleware = require('./middlewares/authMiddleware');
 const errorHandler = require('./middlewares/errorHandler');
 const { swaggerUi, specs } = require('./config/swagger');
@@ -60,6 +61,9 @@ app.use('/api/screens', authMiddleware, screenRoutes);
 app.use('/api/movies', authMiddleware, movieRoutes);
 app.use('/api/shows', authMiddleware, showRoutes);
 app.use('/api/bookings', authMiddleware, bookingRoutes);
+
+// Admin routes (authentication and role validation handled in adminRoutes)
+app.use('/api/admin', adminRoutes);
 
 app.get('/api/profile', authMiddleware, (req, res) => {
   res.json({

@@ -7,6 +7,7 @@ const {
   updateMovie,
   deleteMovie
 } = require('../controllers/movieController');
+const adminMiddleware = require('../middlewares/adminMiddleware');
 
 const router = express.Router();
 
@@ -78,8 +79,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   post:
- *     summary: Create a new movie
- *     description: Add a new movie to the system
+ *     summary: Create a new movie (Admin Only)
+ *     description: Add a new movie to the system. Requires admin privileges.
  *     tags: [Movies]
  *     security:
  *       - bearerAuth: []
@@ -163,8 +164,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   put:
- *     summary: Update movie
- *     description: Update an existing movie
+ *     summary: Update movie (Admin Only)
+ *     description: Update an existing movie. Requires admin privileges.
  *     tags: [Movies]
  *     security:
  *       - bearerAuth: []
@@ -216,8 +217,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   delete:
- *     summary: Delete movie
- *     description: Delete a movie (only if it has no shows)
+ *     summary: Delete movie (Admin Only)
+ *     description: Delete a movie (only if it has no shows). Requires admin privileges.
  *     tags: [Movies]
  *     security:
  *       - bearerAuth: []
@@ -296,10 +297,13 @@ const idValidation = [
     .withMessage('Valid movie ID is required')
 ];
 
+// Public read access for authenticated users
 router.get('/', getAllMovies);
 router.get('/:id', idValidation, getMovieById);
-router.post('/', movieValidation, createMovie);
-router.put('/:id', [...idValidation, ...movieValidation], updateMovie);
-router.delete('/:id', idValidation, deleteMovie);
+
+// Admin-only write access
+router.post('/', adminMiddleware, movieValidation, createMovie);
+router.put('/:id', adminMiddleware, [...idValidation, ...movieValidation], updateMovie);
+router.delete('/:id', adminMiddleware, idValidation, deleteMovie);
 
 module.exports = router;

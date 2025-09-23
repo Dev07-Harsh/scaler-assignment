@@ -7,6 +7,7 @@ const {
   updateScreen,
   deleteScreen
 } = require('../controllers/screenController');
+const adminMiddleware = require('../middlewares/adminMiddleware');
 
 const router = express.Router();
 
@@ -67,8 +68,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   post:
- *     summary: Create a new screen
- *     description: Add a new screen to a cinema
+ *     summary: Create a new screen (Admin Only)
+ *     description: Add a new screen to a cinema. Requires admin privileges.
  *     tags: [Screens]
  *     security:
  *       - bearerAuth: []
@@ -158,8 +159,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   put:
- *     summary: Update screen
- *     description: Update an existing screen
+ *     summary: Update screen (Admin Only)
+ *     description: Update an existing screen. Requires admin privileges.
  *     tags: [Screens]
  *     security:
  *       - bearerAuth: []
@@ -211,8 +212,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   delete:
- *     summary: Delete screen
- *     description: Delete a screen (only if it has no shows)
+ *     summary: Delete screen (Admin Only)
+ *     description: Delete a screen (only if it has no shows). Requires admin privileges.
  *     tags: [Screens]
  *     security:
  *       - bearerAuth: []
@@ -276,10 +277,13 @@ const idValidation = [
     .withMessage('Valid screen ID is required')
 ];
 
+// Public read access for authenticated users
 router.get('/', getAllScreens);
 router.get('/:id', idValidation, getScreenById);
-router.post('/', screenValidation, createScreen);
-router.put('/:id', [...idValidation, ...screenValidation], updateScreen);
-router.delete('/:id', idValidation, deleteScreen);
+
+// Admin-only write access
+router.post('/', adminMiddleware, screenValidation, createScreen);
+router.put('/:id', adminMiddleware, [...idValidation, ...screenValidation], updateScreen);
+router.delete('/:id', adminMiddleware, idValidation, deleteScreen);
 
 module.exports = router;

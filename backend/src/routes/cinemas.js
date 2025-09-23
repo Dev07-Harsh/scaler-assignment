@@ -7,6 +7,7 @@ const {
   updateCinema,
   deleteCinema
 } = require('../controllers/cinemaController');
+const adminMiddleware = require('../middlewares/adminMiddleware');
 
 const router = express.Router();
 
@@ -66,8 +67,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   post:
- *     summary: Create a new cinema
- *     description: Add a new cinema to the system
+ *     summary: Create a new cinema (Admin Only)
+ *     description: Add a new cinema to the system. Requires admin privileges.
  *     tags: [Cinemas]
  *     security:
  *       - bearerAuth: []
@@ -151,8 +152,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   put:
- *     summary: Update cinema
- *     description: Update an existing cinema
+ *     summary: Update cinema (Admin Only)
+ *     description: Update an existing cinema. Requires admin privileges.
  *     tags: [Cinemas]
  *     security:
  *       - bearerAuth: []
@@ -204,8 +205,8 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/Error'
  *   delete:
- *     summary: Delete cinema
- *     description: Delete a cinema (only if it has no screens)
+ *     summary: Delete cinema (Admin Only)
+ *     description: Delete a cinema (only if it has no screens). Requires admin privileges.
  *     tags: [Cinemas]
  *     security:
  *       - bearerAuth: []
@@ -271,10 +272,13 @@ const idValidation = [
     .withMessage('Valid cinema ID is required')
 ];
 
+// Public read access for authenticated users
 router.get('/', getAllCinemas);
 router.get('/:id', idValidation, getCinemaById);
-router.post('/', cinemaValidation, createCinema);
-router.put('/:id', [...idValidation, ...cinemaValidation], updateCinema);
-router.delete('/:id', idValidation, deleteCinema);
+
+// Admin-only write access
+router.post('/', adminMiddleware, cinemaValidation, createCinema);
+router.put('/:id', adminMiddleware, [...idValidation, ...cinemaValidation], updateCinema);
+router.delete('/:id', adminMiddleware, idValidation, deleteCinema);
 
 module.exports = router;
