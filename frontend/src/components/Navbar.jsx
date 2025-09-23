@@ -1,12 +1,14 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuthStore();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
+    navigate('/login');
   };
 
   return (
@@ -32,21 +34,21 @@ const Navbar = () => {
               <>
                 <Link
                   to="/movies"
-                  className="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium"
+                  className="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium transition-colors"
                 >
                   Movies
                 </Link>
                 
                 <Link
                   to="/bookings/history"
-                  className="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium"
+                  className="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium transition-colors"
                 >
                   History
                 </Link>
 
                 <button
                   onClick={handleLogout}
-                  className="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium"
+                  className="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium transition-colors"
                 >
                   Logout
                 </button>
@@ -55,13 +57,13 @@ const Navbar = () => {
               <>
                 <Link
                   to="/login"
-                  className="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium"
+                  className="text-slate-600 hover:text-slate-900 px-3 py-2 text-sm font-medium transition-colors"
                 >
                   Login
                 </Link>
                 <Link
                   to="/signup"
-                  className="bg-slate-800 text-white hover:bg-slate-900 px-4 py-2 rounded-lg text-sm font-medium"
+                  className="bg-slate-800 text-white hover:bg-slate-900 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
                   Sign Up
                 </Link>

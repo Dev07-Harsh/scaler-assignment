@@ -11,6 +11,7 @@ export const useAuthStore = create(
 
       login: (userData, token) => {
         localStorage.setItem('authToken', token);
+        localStorage.setItem('user', JSON.stringify(userData));
         set({
           user: userData,
           token,
@@ -21,6 +22,7 @@ export const useAuthStore = create(
 
       logout: () => {
         localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
         set({
           user: null,
           token: null,
