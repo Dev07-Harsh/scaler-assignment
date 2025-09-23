@@ -41,14 +41,40 @@ const MovieDetails = () => {
     });
   };
 
+  const getShowTimeStatus = (dateTime) => {
+    const now = new Date();
+    const showTime = new Date(dateTime);
+    const timeDiff = showTime - now;
+    const hoursDiff = timeDiff / (1000 * 60 * 60);
+
+    if (hoursDiff <= 2) {
+      return { status: 'soon', label: 'Starting Soon' };
+    } else if (hoursDiff <= 24) {
+      return { status: 'today', label: 'Today' };
+    } else {
+      return { status: 'future', label: '' };
+    }
+  };
+
   const handleShowSelect = (show) => {
     selectShow(show);
     navigate(`/shows/${show.id}/seats`);
   };
 
+  const filterFutureShows = (shows) => {
+    const now = new Date();
+    return shows.filter(show => {
+      const showTime = new Date(show.startTime);
+      return showTime > now;
+    });
+  };
+
   const groupShowsByCinema = (shows) => {
+    // First filter out past shows
+    const futureShows = filterFutureShows(shows);
+    
     const grouped = {};
-    shows.forEach(show => {
+    futureShows.forEach(show => {
       const cinemaKey = `${show.screen.cinema.id}-${show.screen.cinema.name}`;
       if (!grouped[cinemaKey]) {
         grouped[cinemaKey] = {
@@ -58,6 +84,12 @@ const MovieDetails = () => {
       }
       grouped[cinemaKey].shows.push(show);
     });
+    
+    // Sort shows by time within each cinema
+    Object.values(grouped).forEach(cinemaGroup => {
+      cinemaGroup.shows.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    });
+    
     return Object.values(grouped);
   };
 
@@ -180,11 +212,26 @@ const MovieDetails = () => {
 
         {/* Cinemas and Showtimes */}
         <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-slate-900">Available Cinemas & Showtimes</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-slate-900">Available Cinemas & Showtimes</h2>
+            <p className="text-sm text-slate-500">
+              Only showing future showtimes
+            </p>
+          </div>
           
           {cinemaGroups.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
-              <p className="text-slate-600">No showtimes available for this movie.</p>
+              <div className="text-slate-400 mb-4">
+                <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-slate-900 mb-2">No Future Showtimes Available</h3>
+              <p className="text-slate-600">
+                All shows for this movie have already started or ended. 
+                <br />
+                Please check back later for new showtimes.
+              </p>
             </div>
           ) : (
             cinemaGroups.map((group) => (
@@ -197,20 +244,40 @@ const MovieDetails = () => {
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {group.shows.map((show) => (
-                    <button
-                      key={show.id}
-                      onClick={() => handleShowSelect(show)}
-                      className="bg-slate-50 hover:bg-slate-800 hover:text-white border border-slate-200 hover:border-slate-800 rounded-lg p-3 text-left transition-colors"
-                    >
-                      <div className="text-sm font-medium">
-                        {formatShowTime(show.startTime)}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-1">
-                        {show.screen.name} • ₹{show.price}
-                      </div>
-                    </button>
-                  ))}
+                  {group.shows.map((show) => {
+                    const timeStatus = getShowTimeStatus(show.startTime);
+                    return (
+                      <button
+                        key={show.id}
+                        onClick={() => handleShowSelect(show)}
+                        className={`border rounded-lg p-3 text-left transition-colors relative ${
+                          timeStatus.status === 'soon' 
+                            ? 'bg-amber-50 hover:bg-amber-100 border-amber-200 hover:border-amber-300' 
+                            : 'bg-slate-50 hover:bg-slate-800 hover:text-white border-slate-200 hover:border-slate-800'
+                        }`}
+                      >
+                        {timeStatus.label && (
+                          <div className={`absolute top-1 right-1 px-2 py-0.5 text-xs rounded-full ${
+                            timeStatus.status === 'soon' 
+                              ? 'bg-amber-200 text-amber-800' 
+                              : timeStatus.status === 'today'
+                              ? 'bg-blue-200 text-blue-800'
+                              : 'bg-slate-200 text-slate-600'
+                          }`}>
+                            {timeStatus.label}
+                          </div>
+                        )}
+                        <div className="text-sm font-medium pr-16">
+                          {formatShowTime(show.startTime)}
+                        </div>
+                        <div className={`text-xs mt-1 ${
+                          timeStatus.status === 'soon' ? 'text-amber-600' : 'text-slate-500'
+                        }`}>
+                          {show.screen.name} • ₹{show.price}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             ))

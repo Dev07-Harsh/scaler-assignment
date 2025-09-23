@@ -36,7 +36,7 @@ const BookingHistory = () => {
       // Update the booking status in the local state immediately
       setBookings(prevBookings => 
         prevBookings.map(booking => 
-          booking.bookingId === bookingId 
+          (booking.id || booking.bookingId) === bookingId 
             ? { ...booking, status: 'CANCELLED' }
             : booking
         )
@@ -58,8 +58,9 @@ const BookingHistory = () => {
     if (booking.status !== 'CONFIRMED') return false;
     
     // Check if show is in the future
-    const showTime = new Date(booking.show.startTime);
+    const showTime = new Date(booking.show?.startTime);
     const now = new Date();
+    
     return showTime > now;
   };
 
@@ -239,11 +240,11 @@ const BookingHistory = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         {canCancelBooking(booking) ? (
                           <button
-                            onClick={() => handleCancelBooking(booking.bookingId)}
-                            disabled={cancellingBooking === booking.bookingId}
+                            onClick={() => handleCancelBooking(booking.id || booking.bookingId)}
+                            disabled={cancellingBooking === (booking.id || booking.bookingId)}
                             className="inline-flex items-center px-3 py-1.5 border border-red-300 text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-xs font-medium transition-colors"
                           >
-                            {cancellingBooking === booking.bookingId ? (
+                            {cancellingBooking === (booking.id || booking.bookingId) ? (
                               <>
                                 <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-red-700" fill="none" viewBox="0 0 24 24">
                                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

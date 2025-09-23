@@ -32,6 +32,11 @@ const BookingConfirmation = () => {
     });
   };
 
+  // Handle seats data - it could be array or JSON string
+  const seatsArray = Array.isArray(booking.seats) 
+    ? booking.seats 
+    : (typeof booking.seats === 'string' ? JSON.parse(booking.seats || '[]') : []);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -91,7 +96,7 @@ const BookingConfirmation = () => {
             <div>
               <h3 className="font-semibold text-slate-900 mb-3">Selected Seats</h3>
               <div className="flex flex-wrap gap-2">
-                {JSON.parse(booking.seats).map((seatId) => (
+                {seatsArray.map((seatId) => (
                   <span
                     key={seatId}
                     className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium"
@@ -101,7 +106,7 @@ const BookingConfirmation = () => {
                 ))}
               </div>
               <p className="text-slate-600 text-sm mt-2">
-                {JSON.parse(booking.seats).length} seat{JSON.parse(booking.seats).length > 1 ? 's' : ''} booked
+                {seatsArray.length} seat{seatsArray.length > 1 ? 's' : ''} booked
               </p>
             </div>
 
