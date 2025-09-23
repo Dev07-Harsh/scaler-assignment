@@ -5,6 +5,7 @@ const BookingHistory = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [cancellingBooking, setCancellingBooking] = useState(null);
 
   useEffect(() => {
     fetchBookingHistory();
@@ -21,6 +22,45 @@ const BookingHistory = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancelBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) {
+      return;
+    }
+
+    try {
+      setCancellingBooking(bookingId);
+      await bookingAPI.cancelBooking(bookingId);
+      
+      // Update the booking status in the local state immediately
+      setBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking.bookingId === bookingId 
+            ? { ...booking, status: 'CANCELLED' }
+            : booking
+        )
+      );
+
+      // Show success message
+      setError(null);
+      
+    } catch (err) {
+      console.error('Error cancelling booking:', err);
+      setError(err.response?.data?.message || 'Failed to cancel booking. Please try again.');
+      setTimeout(() => setError(null), 5000);
+    } finally {
+      setCancellingBooking(null);
+    }
+  };
+
+  const canCancelBooking = (booking) => {
+    if (booking.status !== 'CONFIRMED') return false;
+    
+    // Check if show is in the future
+    const showTime = new Date(booking.show.startTime);
+    const now = new Date();
+    return showTime > now;
   };
 
   const formatDate = (dateString) => {
@@ -130,6 +170,9 @@ const BookingHistory = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                       Status
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200">
@@ -192,6 +235,31 @@ const BookingHistory = () => {
                         }`}>
                           {booking.status}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        {canCancelBooking(booking) ? (
+                          <button
+                            onClick={() => handleCancelBooking(booking.bookingId)}
+                            disabled={cancellingBooking === booking.bookingId}
+                            className="inline-flex items-center px-3 py-1.5 border border-red-300 text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-md text-xs font-medium transition-colors"
+                          >
+                            {cancellingBooking === booking.bookingId ? (
+                              <>
+                                <svg className="animate-spin -ml-1 mr-2 h-3 w-3 text-red-700" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Cancelling...
+                              </>
+                            ) : (
+                              'Cancel'
+                            )}
+                          </button>
+                        ) : (
+                          <span className="text-slate-400 text-xs">
+                            {booking.status === 'CANCELLED' ? 'Cancelled' : 'Cannot cancel'}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

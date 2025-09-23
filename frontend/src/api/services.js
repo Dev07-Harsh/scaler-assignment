@@ -30,6 +30,7 @@ export const bookingAPI = {
   createBooking: (bookingData) => apiClient.post('/bookings', bookingData),
   getBookingHistory: () => apiClient.get('/bookings/history'),
   getSeats: (showId) => apiClient.get(`/bookings/seats/${showId}`),
+  cancelBooking: (bookingId) => apiClient.post(`/bookings/cancel/${bookingId}`),
 };
 
 // Legacy alias for backward compatibility

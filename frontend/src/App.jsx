@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { useAuthStore } from './store/authStore';
+import { initializeSocket } from './services/socketService';
 import Navbar from './components/Navbar';
 
 // Import pages
@@ -39,7 +40,8 @@ function App() {
 
   useEffect(() => {
     checkAuth();
-  }, [checkAuth]);
+    initializeSocket();
+  }, []);
 
   return (
     <Router>
