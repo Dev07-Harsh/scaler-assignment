@@ -68,7 +68,18 @@ const createBooking = async (req, res, next) => {
         throw new Error('SHOW_NOT_FOUND');
       }
 
-      // 2. Get all confirmed bookings for this show
+      // 2. Check seat holds and validate user has these seats blocked
+      const seatHoldManager = require('../utils/seatHoldManager');
+      const userHolds = seatHoldManager.getUserHolds(userId, showId);
+      const userHeldSeats = userHolds.map(hold => hold.seatLabel);
+      
+      // Verify user has all requested seats in their holds
+      const unheldSeats = normalizedSeats.filter(seat => !userHeldSeats.includes(seat));
+      if (unheldSeats.length > 0) {
+        throw new Error(`SEATS_NOT_HELD:${JSON.stringify(unheldSeats)}`);
+      }
+
+      // 3. Get all confirmed bookings for this show
       const existingBookings = await tx.booking.findMany({
         where: {
           showId: parseInt(showId),
@@ -79,26 +90,26 @@ const createBooking = async (req, res, next) => {
         }
       });
 
-      // 3. Extract all booked seat labels
+      // 4. Extract all booked seat labels
       const allBookedSeats = [];
       existingBookings.forEach(booking => {
         const seatLabels = dbSeatsToLabels(booking.seats);
         allBookedSeats.push(...seatLabels);
       });
 
-      // 4. Check for conflicts
+      // 5. Check for conflicts (double-check even with holds)
       const conflicts = findConflicts(normalizedSeats, allBookedSeats);
       if (conflicts.length > 0) {
         throw new Error(`SEAT_CONFLICT:${JSON.stringify(conflicts)}`);
       }
 
-      // 5. Calculate total price
+      // 6. Calculate total price
       const totalPrice = show.price * normalizedSeats.length;
 
-      // 6. Convert seats to database format
+      // 7. Convert seats to database format
       const dbSeats = seatsToDbFormat(normalizedSeats);
 
-      // 7. Create the booking
+      // 8. Create the booking
       const booking = await tx.booking.create({
         data: {
           userId,
@@ -111,8 +122,21 @@ const createBooking = async (req, res, next) => {
 
       return {
         booking,
-        show
+        show,
+        seats: normalizedSeats
       };
+    });
+
+    // 9. Release user's seat holds for this show
+    const seatHoldManager = require('../utils/seatHoldManager');
+    await seatHoldManager.unblockSeats(userId, null, showId);
+
+    // 10. Broadcast booking confirmation to all clients
+    const socketManager = require('../utils/socketManager');
+    socketManager.broadcastBookingConfirmed(parseInt(showId), {
+      bookingId: result.booking.id,
+      seats: result.seats,
+      userId
     });
 
 
@@ -130,6 +154,15 @@ const createBooking = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Show not found'
+      });
+    }
+
+    if (error.message.startsWith('SEATS_NOT_HELD:')) {
+      const unheldSeats = JSON.parse(error.message.split(':')[1]);
+      return res.status(400).json({
+        success: false,
+        message: 'You must select and hold seats before booking',
+        unheldSeats
       });
     }
 
@@ -316,8 +349,138 @@ const getShowSeatAvailability = async (req, res, next) => {
   }
 };
 
+/**
+ * Cancel a booking
+ * POST /api/bookings/cancel/:bookingId
+ */
+const cancelBooking = async (req, res, next) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user.id;
+
+    // Use Prisma transaction for atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Find the booking and verify ownership
+      const booking = await tx.booking.findUnique({
+        where: { id: parseInt(bookingId) },
+        include: {
+          show: {
+            include: {
+              movie: {
+                select: {
+                  id: true,
+                  title: true
+                }
+              },
+              screen: {
+                include: {
+                  cinema: {
+                    select: {
+                      id: true,
+                      name: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (!booking) {
+        throw new Error('BOOKING_NOT_FOUND');
+      }
+
+      if (booking.userId !== userId) {
+        throw new Error('UNAUTHORIZED_CANCELLATION');
+      }
+
+      if (booking.status === 'CANCELLED') {
+        throw new Error('BOOKING_ALREADY_CANCELLED');
+      }
+
+      // 2. Check if show has already started (optional business rule)
+      const now = new Date();
+      if (booking.show.startTime <= now) {
+        throw new Error('CANNOT_CANCEL_PAST_SHOW');
+      }
+
+      // 3. Update booking status to cancelled
+      const updatedBooking = await tx.booking.update({
+        where: { id: parseInt(bookingId) },
+        data: {
+          status: 'CANCELLED'
+        }
+      });
+
+      return {
+        booking: updatedBooking,
+        show: booking.show,
+        seats: dbSeatsToLabels(booking.seats)
+      };
+    });
+
+    // 4. Broadcast cancellation to connected clients
+    const socketManager = require('../utils/socketManager');
+    socketManager.broadcastBookingCancelled(result.show.id, {
+      bookingId: parseInt(bookingId),
+      seats: result.seats,
+      userId
+    });
+
+    res.json({
+      success: true,
+      message: 'Booking cancelled successfully',
+      data: {
+        bookingId: parseInt(bookingId),
+        status: 'CANCELLED',
+        refundAmount: result.booking.totalPrice,
+        seats: result.seats,
+        show: {
+          id: result.show.id,
+          movie: result.show.movie.title,
+          cinema: result.show.screen.cinema.name,
+          startTime: result.show.startTime
+        }
+      }
+    });
+
+  } catch (error) {
+    if (error.message === 'BOOKING_NOT_FOUND') {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+    
+    if (error.message === 'UNAUTHORIZED_CANCELLATION') {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only cancel your own bookings'
+      });
+    }
+    
+    if (error.message === 'BOOKING_ALREADY_CANCELLED') {
+      return res.status(400).json({
+        success: false,
+        message: 'Booking is already cancelled'
+      });
+    }
+    
+    if (error.message === 'CANNOT_CANCEL_PAST_SHOW') {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot cancel booking for a show that has already started'
+      });
+    }
+
+    next(error);
+  }
+};
+
 module.exports = {
   createBooking,
   getUserBookingHistory,
-  getShowSeatAvailability
+  getShowSeatAvailability,
+  cancelBooking
 };

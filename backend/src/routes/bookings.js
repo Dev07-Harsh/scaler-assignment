@@ -4,8 +4,15 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const {
   createBooking,
   getUserBookingHistory,
-  getShowSeatAvailability
+  getShowSeatAvailability,
+  cancelBooking
 } = require('../controllers/bookingController');
+const {
+  blockSeats,
+  unblockSeats,
+  getSeatAvailability,
+  getSeatHoldStats
+} = require('../controllers/seatController');
 
 const router = express.Router();
 
@@ -309,5 +316,170 @@ router.get('/seats/:showId',
   ],
   getShowSeatAvailability
 );
+
+/**
+ * @swagger
+ * /api/bookings/block-seats/{showId}:
+ *   post:
+ *     summary: Temporarily block seats for booking
+ *     description: Reserve seats temporarily while user completes booking process
+ *     tags: [Bookings]
+ *     parameters:
+ *       - in: path
+ *         name: showId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The show ID to block seats for
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - seats
+ *             properties:
+ *               seats:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["A1", "A2", "B1"]
+ *                 description: Array of seat identifiers to block
+ *     responses:
+ *       200:
+ *         description: Seats blocked successfully
+ *       400:
+ *         description: Invalid seat format or seats unavailable
+ *       404:
+ *         description: Show not found
+ */
+router.post('/block-seats/:showId',
+  [
+    param('showId')
+      .isNumeric()
+      .withMessage('Show ID must be a valid number'),
+    body('seats')
+      .isArray({ min: 1, max: 6 })
+      .withMessage('Seats must be an array with 1-6 elements')
+  ],
+  blockSeats
+);
+
+/**
+ * @swagger
+ * /api/bookings/unblock-seats/{showId}:
+ *   post:
+ *     summary: Release temporarily blocked seats
+ *     description: Remove seat blocks when user cancels selection or leaves
+ *     tags: [Bookings]
+ *     parameters:
+ *       - in: path
+ *         name: showId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The show ID to unblock seats for
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               seats:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["A1", "A2"]
+ *                 description: Specific seats to unblock (optional - unblocks all user seats if not provided)
+ *     responses:
+ *       200:
+ *         description: Seats unblocked successfully
+ *       404:
+ *         description: Show not found
+ */
+router.post('/unblock-seats/:showId',
+  [
+    param('showId')
+      .isNumeric()
+      .withMessage('Show ID must be a valid number')
+  ],
+  unblockSeats
+);
+
+/**
+ * @swagger
+ * /api/bookings/availability/{showId}:
+ *   get:
+ *     summary: Get real-time seat availability including holds
+ *     description: Get current seat availability including temporary holds and user's holds
+ *     tags: [Bookings]
+ *     parameters:
+ *       - in: path
+ *         name: showId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The show ID to check availability for
+ *     responses:
+ *       200:
+ *         description: Seat availability with holds retrieved successfully
+ *       404:
+ *         description: Show not found
+ */
+router.get('/availability/:showId',
+  [
+    param('showId')
+      .isNumeric()
+      .withMessage('Show ID must be a valid number')
+  ],
+  getSeatAvailability
+);
+
+/**
+ * @swagger
+ * /api/bookings/cancel/{bookingId}:
+ *   post:
+ *     summary: Cancel a confirmed booking
+ *     description: Cancel a user's booking and release the seats
+ *     tags: [Bookings]
+ *     parameters:
+ *       - in: path
+ *         name: bookingId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The booking ID to cancel
+ *     responses:
+ *       200:
+ *         description: Booking cancelled successfully
+ *       400:
+ *         description: Cannot cancel booking (already cancelled or show started)
+ *       403:
+ *         description: Not authorized to cancel this booking
+ *       404:
+ *         description: Booking not found
+ */
+router.post('/cancel/:bookingId',
+  [
+    param('bookingId')
+      .isNumeric()
+      .withMessage('Booking ID must be a valid number')
+  ],
+  cancelBooking
+);
+
+/**
+ * @swagger
+ * /api/bookings/stats:
+ *   get:
+ *     summary: Get seat hold and socket statistics
+ *     description: Get current statistics for monitoring and debugging
+ *     tags: [Bookings]
+ *     responses:
+ *       200:
+ *         description: Statistics retrieved successfully
+ */
+router.get('/stats', getSeatHoldStats);
 
 module.exports = router;

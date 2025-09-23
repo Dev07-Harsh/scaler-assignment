@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const authRoutes = require('./routes/authRoutes');
@@ -10,15 +12,66 @@ const bookingRoutes = require('./routes/bookings');
 const authMiddleware = require('./middlewares/authMiddleware');
 const errorHandler = require('./middlewares/errorHandler');
 const { swaggerUi, specs } = require('./config/swagger');
+const socketManager = require('./utils/socketManager');
+const seatHoldManager = require('./utils/seatHoldManager');
 
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  credentials: true
+}));
+
+// Initialize Socket.io and managers
+socketManager.initialize(io);
+seatHoldManager.setSocketManager(socketManager);
+
+// Setup seat hold event listeners
+io.on('connection', (socket) => {
+  socket.on('seat-block-request', async (data) => {
+    const result = await seatHoldManager.blockSeats(
+      data.userId, 
+      data.socketId, 
+      data.showId, 
+      data.seats
+    );
+    socket.emit('seat-block-response', result);
+  });
+
+  socket.on('seat-unblock-request', async (data) => {
+    const result = await seatHoldManager.unblockSeats(
+      data.userId, 
+      data.socketId, 
+      data.showId, 
+      data.seats
+    );
+    socket.emit('seat-unblock-response', result);
+  });
+
+  socket.on('get-seat-availability', async (data) => {
+    const holds = seatHoldManager.getShowHolds(data.showId);
+    socket.emit('seat-availability', { showId: data.showId, holds });
+  });
+});
+
+// Handle client disconnections for seat cleanup
+io.on('client-disconnected', (data) => {
+  seatHoldManager.cleanupUserHolds(data.userId, data.socketId);
+});
 
 // Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
@@ -54,9 +107,10 @@ app.get('/api/profile', authMiddleware, (req, res) => {
 // Error handling middleware
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Swagger documentation available at http://localhost:${PORT}/api-docs`);
+  console.log(`Socket.io server ready for real-time connections`);
 });
 
-module.exports = app;
+module.exports = { app, server, io };
