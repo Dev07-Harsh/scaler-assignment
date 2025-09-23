@@ -27,9 +27,15 @@ class SocketManager {
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         
+        const userId = decoded.userId || decoded.id;
+        if (!userId) {
+          console.error('JWT decoded but no user ID found:', decoded);
+          return next(new Error('Invalid token: missing user ID'));
+        }
+        
         // Fetch user details from database
         const user = await prisma.user.findUnique({
-          where: { id: decoded.id },
+          where: { id: userId },
           select: { id: true, name: true, email: true, role: true }
         });
 
@@ -129,22 +135,36 @@ class SocketManager {
   }
 
   handleBlockSeats(socket, data) {
-    // This will be handled by the seat hold manager
-    // Emit event to seat hold manager
-    socket.emit('seat-block-request', {
-      userId: socket.userId,
-      socketId: socket.id,
-      ...data
+    // Call seat hold manager directly
+    const seatHoldManager = require('./seatHoldManager');
+    
+    seatHoldManager.blockSeats(
+      socket.userId,
+      socket.id,
+      data.showId,
+      data.seats
+    ).then(result => {
+      socket.emit('seat-block-response', result);
+    }).catch(error => {
+      console.error('Error blocking seats:', error);
+      socket.emit('seat-block-response', { success: false, error: error.message });
     });
   }
 
   handleUnblockSeats(socket, data) {
-    // This will be handled by the seat hold manager
-    // Emit event to seat hold manager
-    socket.emit('seat-unblock-request', {
-      userId: socket.userId,
-      socketId: socket.id,
-      ...data
+    // Call seat hold manager directly
+    const seatHoldManager = require('./seatHoldManager');
+    
+    seatHoldManager.unblockSeats(
+      socket.userId,
+      socket.id,
+      data.showId,
+      data.seats
+    ).then(result => {
+      socket.emit('seat-unblock-response', result);
+    }).catch(error => {
+      console.error('Error unblocking seats:', error);
+      socket.emit('seat-unblock-response', { success: false, error: error.message });
     });
   }
 
@@ -158,13 +178,9 @@ class SocketManager {
     
     this.connectedClients.delete(socket.id);
     
-    // Emit event to seat hold manager to clean up user's holds
-    if (this.io) {
-      this.io.emit('client-disconnected', {
-        userId: socket.userId,
-        socketId: socket.id
-      });
-    }
+    // Clean up user's seat holds
+    const seatHoldManager = require('./seatHoldManager');
+    seatHoldManager.cleanupUserHolds(socket.userId, socket.id);
   }
 
   joinShowRoom(socket, showId) {

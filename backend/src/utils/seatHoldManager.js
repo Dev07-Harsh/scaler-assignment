@@ -113,6 +113,7 @@ class SeatHoldManager {
       // Broadcast updates if socket manager is available
       if (this.socketManager && blocked.length > 0) {
         this.socketManager.broadcastSeatBlocked(showId, {
+          showId: parseInt(showId),
           seats: blocked,
           userId,
           expiresAt
@@ -184,6 +185,7 @@ class SeatHoldManager {
       // Broadcast updates
       if (this.socketManager && unblocked.length > 0) {
         this.socketManager.broadcastSeatUnblocked(showId, {
+          showId: parseInt(showId),
           seats: unblocked,
           userId
         });
@@ -259,9 +261,9 @@ class SeatHoldManager {
     }
   }
 
-  async removePersistedHolds(userId, showId, seatLabels = null) {
+  async removePersistedHolds(userId, showId = null, seatLabels = null) {
     try {
-      if (seatLabels) {
+      if (seatLabels && showId) {
         // Remove specific seats (this is complex with JSON, so we'll remove all and re-add remaining)
         const currentHold = await prisma.seatHold.findFirst({
           where: {
@@ -297,12 +299,19 @@ class SeatHoldManager {
             });
           }
         }
-      } else {
+      } else if (showId) {
         // Remove all holds for user and show
         await prisma.seatHold.deleteMany({
           where: {
             userId,
             showId: parseInt(showId)
+          }
+        });
+      } else {
+        // Remove all holds for user across all shows
+        await prisma.seatHold.deleteMany({
+          where: {
+            userId
           }
         });
       }
@@ -334,6 +343,7 @@ class SeatHoldManager {
       // Broadcast expired seats
       if (this.socketManager && expiredSeats.length > 0) {
         this.socketManager.broadcastSeatUnblocked(showId, {
+          showId: parseInt(showId),
           seats: expiredSeats,
           reason: 'expired'
         });
@@ -435,6 +445,7 @@ class SeatHoldManager {
       // Broadcast cleanup
       if (this.socketManager && userSeats.length > 0) {
         this.socketManager.broadcastSeatUnblocked(showId, {
+          showId: parseInt(showId),
           seats: userSeats,
           userId,
           reason: 'user_disconnected'

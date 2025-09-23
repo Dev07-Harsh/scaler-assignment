@@ -134,6 +134,7 @@ const createBooking = async (req, res, next) => {
     // 10. Broadcast booking confirmation to all clients
     const socketManager = require('../utils/socketManager');
     socketManager.broadcastBookingConfirmed(parseInt(showId), {
+      showId: parseInt(showId),
       bookingId: result.booking.id,
       seats: result.seats,
       userId
@@ -423,6 +424,7 @@ const cancelBooking = async (req, res, next) => {
     // 4. Broadcast cancellation to connected clients
     const socketManager = require('../utils/socketManager');
     socketManager.broadcastBookingCancelled(result.show.id, {
+      showId: result.show.id,
       bookingId: parseInt(bookingId),
       seats: result.seats,
       userId

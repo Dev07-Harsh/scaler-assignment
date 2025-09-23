@@ -40,39 +40,6 @@ app.use(cors({
 socketManager.initialize(io);
 seatHoldManager.setSocketManager(socketManager);
 
-// Setup seat hold event listeners
-io.on('connection', (socket) => {
-  socket.on('seat-block-request', async (data) => {
-    const result = await seatHoldManager.blockSeats(
-      data.userId, 
-      data.socketId, 
-      data.showId, 
-      data.seats
-    );
-    socket.emit('seat-block-response', result);
-  });
-
-  socket.on('seat-unblock-request', async (data) => {
-    const result = await seatHoldManager.unblockSeats(
-      data.userId, 
-      data.socketId, 
-      data.showId, 
-      data.seats
-    );
-    socket.emit('seat-unblock-response', result);
-  });
-
-  socket.on('get-seat-availability', async (data) => {
-    const holds = seatHoldManager.getShowHolds(data.showId);
-    socket.emit('seat-availability', { showId: data.showId, holds });
-  });
-});
-
-// Handle client disconnections for seat cleanup
-io.on('client-disconnected', (data) => {
-  seatHoldManager.cleanupUserHolds(data.userId, data.socketId);
-});
-
 // Swagger documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
   explorer: true,
