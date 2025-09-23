@@ -62,7 +62,7 @@ const getShowSeatsDetails = async (req, res) => {
 
     // Get seat holds (blocked seats)
     const seatHoldManager = require('../utils/seatHoldManager');
-    const seatHolds = seatHoldManager.getShowHolds(parseInt(id));
+    const seatHoldsObj = seatHoldManager.getShowHolds(parseInt(id));
 
     // Build seat layout
     const seatLayout = {};
@@ -93,10 +93,10 @@ const getShowSeatsDetails = async (req, res) => {
       });
     });
 
-    // Process seat holds
-    seatHolds.forEach(hold => {
-      if (!seatLayout[hold.seatLabel]) {
-        seatLayout[hold.seatLabel] = {
+    // Process seat holds (seatHoldsObj is an object, not an array)
+    Object.entries(seatHoldsObj).forEach(([seatLabel, hold]) => {
+      if (!seatLayout[seatLabel]) {
+        seatLayout[seatLabel] = {
           status: 'blocked',
           user: {
             id: hold.userId
