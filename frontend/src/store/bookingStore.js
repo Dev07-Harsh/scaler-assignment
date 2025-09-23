@@ -51,6 +51,22 @@ export const useBookingStore = create((set, get) => ({
   }),
 
   // Seat selection
+  selectSeat: (seatId) => {
+    const { selectedSeats } = get();
+    if (!selectedSeats.includes(seatId) && selectedSeats.length < 6) {
+      set({
+        selectedSeats: [...selectedSeats, seatId]
+      });
+    }
+  },
+
+  deselectSeat: (seatId) => {
+    const { selectedSeats } = get();
+    set({
+      selectedSeats: selectedSeats.filter(s => s !== seatId)
+    });
+  },
+
   toggleSeat: (seat) => {
     const { selectedSeats } = get();
     const seatIndex = selectedSeats.findIndex(s => s === seat);

@@ -26,6 +26,13 @@ export const showsAPI = {
 };
 
 // Bookings API calls
+export const bookingAPI = {
+  createBooking: (bookingData) => apiClient.post('/bookings', bookingData),
+  getBookingHistory: () => apiClient.get('/bookings/history'),
+  getSeats: (showId) => apiClient.get(`/bookings/seats/${showId}`),
+};
+
+// Legacy alias for backward compatibility
 export const bookingsAPI = {
   createBooking: (bookingData) => apiClient.post('/bookings', bookingData),
   getBookingHistory: () => apiClient.get('/bookings/history'),
