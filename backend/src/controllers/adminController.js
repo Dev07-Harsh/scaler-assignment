@@ -253,6 +253,12 @@ const getDashboardData = async (req, res) => {
       take: 10
     });
 
+    // Add seat count to recent bookings
+    const enrichedRecentBookings = recentBookings.map(booking => ({
+      ...booking,
+      seatCount: booking.seats ? booking.seats.length : 0
+    }));
+
     res.json({
       success: true,
       message: 'Dashboard data retrieved successfully',
@@ -262,12 +268,12 @@ const getDashboardData = async (req, res) => {
           totalScreens,
           totalMovies,
           totalShows,
-          todayBookings,
+          totalBookings: todayBookings,
           totalRevenue: totalRevenue._sum.totalPrice || 0,
           todayRevenue: todayRevenue._sum.totalPrice || 0
         },
         topMovies,
-        recentBookings
+        recentBookings: enrichedRecentBookings
       }
     });
   } catch (error) {

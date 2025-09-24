@@ -137,7 +137,13 @@ const createBooking = async (req, res, next) => {
       showId: parseInt(showId),
       bookingId: result.booking.id,
       seats: result.seats,
-      userId
+      userId,
+      user: {
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email
+      },
+      bookedAt: new Date().toISOString()
     });
 
 

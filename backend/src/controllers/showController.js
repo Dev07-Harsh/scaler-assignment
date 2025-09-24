@@ -5,9 +5,70 @@ const { getPaginationParams, formatPaginationResponse } = require('../utils/pagi
 const getAllShows = async (req, res, next) => {
   try {
     const { page, limit, skip, take } = getPaginationParams(req.query);
+    const { search, movieId, cinemaId, date } = req.query;
+
+    // Build where clause for filtering
+    const where = {};
+    
+    // Search filter
+    if (search) {
+      where.OR = [
+        {
+          movie: {
+            title: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          }
+        },
+        {
+          screen: {
+            name: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          }
+        },
+        {
+          screen: {
+            cinema: {
+              name: {
+                contains: search,
+                mode: 'insensitive'
+              }
+            }
+          }
+        }
+      ];
+    }
+    
+    // Movie filter
+    if (movieId) {
+      where.movieId = parseInt(movieId);
+    }
+    
+    // Cinema filter
+    if (cinemaId) {
+      where.screen = {
+        cinemaId: parseInt(cinemaId)
+      };
+    }
+    
+    // Date filter
+    if (date) {
+      const filterDate = new Date(date);
+      const startOfDay = new Date(filterDate.setHours(0, 0, 0, 0));
+      const endOfDay = new Date(filterDate.setHours(23, 59, 59, 999));
+      
+      where.startTime = {
+        gte: startOfDay,
+        lte: endOfDay
+      };
+    }
 
     const [shows, total] = await Promise.all([
       prisma.show.findMany({
+        where,
         include: {
           movie: {
             select: {
@@ -41,7 +102,7 @@ const getAllShows = async (req, res, next) => {
         skip,
         take
       }),
-      prisma.show.count()
+      prisma.show.count({ where })
     ]);
 
     const response = formatPaginationResponse(shows, total, page, limit);

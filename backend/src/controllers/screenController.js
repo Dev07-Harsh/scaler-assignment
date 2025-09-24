@@ -5,9 +5,39 @@ const { getPaginationParams, formatPaginationResponse } = require('../utils/pagi
 const getAllScreens = async (req, res, next) => {
   try {
     const { page, limit, skip, take } = getPaginationParams(req.query);
+    const { search, cinemaId } = req.query;
+
+    // Build where clause for filtering
+    const where = {};
+    
+    // Search filter
+    if (search) {
+      where.OR = [
+        {
+          name: {
+            contains: search,
+            mode: 'insensitive'
+          }
+        },
+        {
+          cinema: {
+            name: {
+              contains: search,
+              mode: 'insensitive'
+            }
+          }
+        }
+      ];
+    }
+    
+    // Cinema filter
+    if (cinemaId) {
+      where.cinemaId = parseInt(cinemaId);
+    }
 
     const [screens, total] = await Promise.all([
       prisma.screen.findMany({
+        where,
         include: {
           cinema: {
             select: {
@@ -28,7 +58,7 @@ const getAllScreens = async (req, res, next) => {
         skip,
         take
       }),
-      prisma.screen.count()
+      prisma.screen.count({ where })
     ]);
 
     const response = formatPaginationResponse(screens, total, page, limit);
