@@ -138,7 +138,7 @@ function App() {
               <Route path="movies" element={<MovieManager />} />
               <Route path="screens" element={<ScreenManager />} />
               <Route path="shows" element={<ShowManager />} />
-              <Route path="shows/:showId/seats" element={<SeatSelection isAdmin={true} />} />
+              <Route path="shows/:showId/seats" element={<SeatSelection />} />
             </Route>
 
             {/* Default redirects */}
