@@ -13,7 +13,14 @@ import Shows from './pages/Shows';
 import SeatSelection from './pages/SeatSelection';
 import BookingHistory from './pages/BookingHistory';
 import BookingConfirmation from './pages/BookingConfirmation';
-import Admin from './pages/Admin';
+
+// Admin imports
+import AdminLayout from './admin/components/AdminLayout';
+import Dashboard from './admin/pages/Dashboard';
+import CinemaManager from './admin/pages/CinemaManager';
+import MovieManager from './admin/pages/MovieManager';
+import ScreenManager from './admin/pages/ScreenManager';
+import ShowManager from './admin/pages/ShowManager';
 
 // Protected Route component
 const ProtectedRoute = ({ children }) => {
@@ -45,7 +52,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 overflow-x-hidden">
         <Navbar />
         <main>
           <Routes>
@@ -122,10 +129,17 @@ function App() {
               path="/admin" 
               element={
                 <AdminRoute>
-                  <Admin />
+                  <AdminLayout />
                 </AdminRoute>
               } 
-            />
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="cinemas" element={<CinemaManager />} />
+              <Route path="movies" element={<MovieManager />} />
+              <Route path="screens" element={<ScreenManager />} />
+              <Route path="shows" element={<ShowManager />} />
+              <Route path="shows/:showId/seats" element={<SeatSelection isAdmin={true} />} />
+            </Route>
 
             {/* Default redirects */}
             <Route path="/" element={<Navigate to="/movies" replace />} />
