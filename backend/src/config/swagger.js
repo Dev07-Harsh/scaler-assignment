@@ -16,8 +16,10 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
-        description: 'Development server'
+        url: process.env.NODE_ENV === 'production' 
+          ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME || 'https://scaler-assignment-5yzo.onrender.com'}` 
+          : `http://localhost:${process.env.PORT || 3000}`,
+        description: process.env.NODE_ENV === 'production' ? 'Production server' : 'Development server'
       }
     ],
     components: {
