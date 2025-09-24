@@ -4,7 +4,20 @@ A modern, full-stack cinema booking application built with React, Node.js, and M
 
 ## Live Demo
 
-**Application**: [https://your-app-domain.com](https://your-app-domain.com) *(Live link will be updated soon)*
+**Application**: [https://scaler-assignment-five.vercel.app/](https://scaler-assignment-five.vercel.app/)
+
+> **⚠️ Note**: The backend is deployed on Render's free tier, which may experience cold starts. If the application seems slow initially, please wait 30-60 seconds for the backend services to spin up.
+
+## Demo Credentials (For Testing)
+
+**Admin Access:**
+- Email: `admin@gmail.com`
+- Password: `123456`
+- Navigate to `/admin` after login
+
+**Regular User:**
+- Email: `test@gmail.com`
+- Password: `123456`
 
 
 ### API Documentation
@@ -13,7 +26,7 @@ A modern, full-stack cinema booking application built with React, Node.js, and M
 
 **The full API documentation is available at `/api-docs` after starting the server:**
 
-[View API Docs](http://localhost:3000/api-docs)
+[View API Docs Live](https://scaler-assignment-5yzo.onrender.com/api-docs/)
 
 > **Note:** Make sure your server is running locally at `http://localhost:3000`. 
 
@@ -214,6 +227,14 @@ cd scaler-assignment
 - **Show Scheduling** - Create and manage movie showtimes
 - **Booking Oversight** - View and manage all user bookings
 - **Real-time Updates** - Live booking status and seat availability
+
+### Admin Access
+
+To access the admin dashboard, navigate to `/admin` after logging in with admin credentials.
+
+**For Testing Purposes:**
+1. **Option 1**: Create a regular user account, then update the user role to `ADMIN` in the database
+2. **Option 2**: Add admin users directly through database seeding operations
 
 
 ## Authentication
