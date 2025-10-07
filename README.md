@@ -4,7 +4,7 @@ A modern, full-stack cinema booking application built with React, Node.js, and M
 
 ## Live Demo
 
-**Application**: [https://scaler-assignment-five.vercel.app/](https://scaler-assignment-five.vercel.app/)
+**Application**: *removed deployment link*
 
 > **⚠️ Note**: The backend is deployed on Render's free tier, which may experience cold starts. If the application seems slow initially, please wait 30-60 seconds for the backend services to spin up.
 
@@ -26,7 +26,7 @@ A modern, full-stack cinema booking application built with React, Node.js, and M
 
 **The full API documentation is available at `/api-docs` after starting the server:**
 
-[View API Docs Live](https://scaler-assignment-5yzo.onrender.com/api-docs/)
+[View API Docs Live]()*link removed*
 
 > **Note:** Make sure your server is running locally at `http://localhost:3000`. 
 
